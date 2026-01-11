@@ -30,8 +30,18 @@ type launcherUpdate struct {
 	Size           int64
 }
 
+// LauncherUpdateEnabled controls whether launcher self-updates are checked.
+// Set to false for development/testing or when running a modified launcher.
+var LauncherUpdateEnabled = false
+
 // CheckForLauncherUpdate checks if a launcher update is available.
 func CheckForLauncherUpdate(ctx context.Context) (Update, error) {
+	// Skip launcher updates if disabled
+	if !LauncherUpdateEnabled {
+		slog.Debug("launcher updates disabled")
+		return nil, nil
+	}
+
 	// Get current launcher version
 	currentVersion := build.Version
 	currentBuild := build.BuildNumber

@@ -13,6 +13,9 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"hytale-launcher/internal/ioutil"
+	"hytale-launcher/internal/net"
 )
 
 // ProgressReporter is called during downloads to report progress.
@@ -202,17 +205,12 @@ func downloadFile(
 }
 
 // checkOffline checks if the system appears to be offline.
-// This is a stub - the actual implementation would check network connectivity.
+// Returns net.ErrOffline if the launcher is in offline mode.
 func checkOffline() error {
-	// In the original code, this calls hytale-launcher/internal/net.OfflineError()
-	// For now, we return nil (not offline)
-	return nil
+	return net.OfflineError()
 }
 
 // verifySHA256 verifies that the file at path has the expected SHA256 hash.
-// This is a stub - implementation would be in the ioutil package.
 func verifySHA256(path, expectedHash string) error {
-	// In the original code, this calls hytale-launcher/internal/ioutil.VerifySHA256()
-	// For now, we return nil (verification passed)
-	return nil
+	return ioutil.VerifySHA256(path, expectedHash)
 }

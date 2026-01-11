@@ -2,9 +2,13 @@
 package repair
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -158,20 +162,71 @@ func VerifyDirectory(dir string, checksums map[string]string, reporter ProgressR
 }
 
 // RepairFile attempts to repair a single corrupted or missing file by re-downloading it.
-// This is a placeholder that should be implemented with actual download logic.
+// It downloads the file to a temporary location, verifies its checksum, and then
+// atomically replaces the target file.
 func RepairFile(installDir, relativePath, downloadURL, expectedHash string) error {
 	slog.Info("repairing file",
 		"path", relativePath,
 		"download_url", downloadURL,
 	)
 
-	// TODO: Implement actual download and file replacement logic
-	// This would typically:
-	// 1. Download the file from downloadURL to a temp location
-	// 2. Verify the downloaded file's checksum
-	// 3. Replace the corrupted file atomically
+	fullPath := filepath.Join(installDir, relativePath)
 
-	return errors.New("repair not yet implemented")
+	// Ensure parent directory exists
+	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	// Download to a temp file in the same directory (for atomic rename)
+	tempFile, err := os.CreateTemp(filepath.Dir(fullPath), ".repair-*")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tempPath := tempFile.Name()
+	defer func() {
+		tempFile.Close()
+		os.Remove(tempPath) // Clean up on failure
+	}()
+
+	// Download the file
+	ctx, cancel := context.WithTimeout(context.Background(), 300*http.DefaultClient.Timeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to download file: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("download failed with status: %s", resp.Status)
+	}
+
+	// Write to temp file
+	if _, err := io.Copy(tempFile, resp.Body); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+	tempFile.Close()
+
+	// Verify checksum if provided
+	if expectedHash != "" {
+		if err := ioutil.VerifySHA256(tempPath, expectedHash); err != nil {
+			return fmt.Errorf("checksum verification failed: %w", err)
+		}
+	}
+
+	// Atomic replace
+	if err := os.Rename(tempPath, fullPath); err != nil {
+		return fmt.Errorf("failed to replace file: %w", err)
+	}
+
+	slog.Info("file repaired successfully", "path", relativePath)
+	return nil
 }
 
 // CleanupOrphanedFiles removes files that are not in the expected file list.

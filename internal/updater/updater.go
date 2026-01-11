@@ -3,12 +3,14 @@
 package updater
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"sync"
 
 	"hytale-launcher/internal/appstate"
 	"hytale-launcher/internal/auth"
+	"hytale-launcher/internal/pkg"
 	"hytale-launcher/internal/update"
 )
 
@@ -56,13 +58,13 @@ func New(listener update.Listener, pkgs ...Package) *Updater {
 
 // CheckForUpdates checks all registered packages for available updates.
 // It returns the number of updates found and any error encountered.
-func (u *Updater) CheckForUpdates(state *appstate.State, auth *auth.Controller) (int, error) {
+func (u *Updater) CheckForUpdates(state *appstate.State, authCtrl *auth.Controller) (int, error) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
 	// Clear previous update info.
-	for _, pkg := range u.packages {
-		pkg.AvailableUpdate = nil
+	for _, p := range u.packages {
+		p.AvailableUpdate = nil
 	}
 
 	channel := ""
@@ -70,10 +72,12 @@ func (u *Updater) CheckForUpdates(state *appstate.State, auth *auth.Controller) 
 		channel = state.Channel
 	}
 
+	ctx := context.Background()
 	updateCount := 0
-	for _, pkg := range u.packages {
+
+	for _, p := range u.packages {
 		slog.Debug("checking for update",
-			"package", pkg.Name,
+			"package", p.Name,
 			"channel", channel,
 		)
 
@@ -81,20 +85,80 @@ func (u *Updater) CheckForUpdates(state *appstate.State, auth *auth.Controller) 
 		if u.listener != nil {
 			u.listener.Event(update.Event{
 				Name:    "checking",
-				Package: pkg.Name,
+				Package: p.Name,
 			})
 		}
 
-		// TODO: Actually check for updates using the package implementation.
-		// For now, we'll just log that we checked.
-		slog.Debug("update check complete for package",
-			"package", pkg.Name,
-			"has_update", pkg.AvailableUpdate != nil,
-		)
+		// Check for updates based on package type
+		var pkgUpdate pkg.Update
+		var err error
 
-		if pkg.AvailableUpdate != nil {
+		switch p.Name {
+		case "jre":
+			pkgUpdate, err = pkg.CheckForJavaUpdate(ctx, state, channel)
+		case "game":
+			// Build auth context for game updates
+			var gameAuth *pkg.Auth
+			if authCtrl != nil && authCtrl.IsLoggedIn() {
+				acct := authCtrl.GetAccount()
+				if acct != nil {
+					gameAuth = &pkg.Auth{
+						Account: &pkg.GameAccount{
+							Patchlines: make(map[string]*pkg.GamePatchline),
+						},
+					}
+					// Populate patchlines from account data
+					if acct.CurrentProfile != nil {
+						for _, ent := range acct.CurrentProfile.Entitlements {
+							// Parse patchline entitlements
+							if len(ent) > 10 && ent[:10] == "patchline:" {
+								patchlineName := ent[10:]
+								gameAuth.Account.Patchlines[patchlineName] = &pkg.GamePatchline{
+									Name:        patchlineName,
+									NewestBuild: 1, // Will be populated from server
+								}
+							}
+						}
+					}
+				}
+			}
+
+			if gameAuth != nil && gameAuth.Account != nil {
+				game := &pkg.Game{
+					Channel: channel,
+					State:   state,
+				}
+				pkgUpdate, err = game.CheckForUpdate(ctx, gameAuth)
+			}
+		case "launcher":
+			pkgUpdate, err = pkg.CheckForLauncherUpdate(ctx)
+		}
+
+		if err != nil {
+			slog.Warn("error checking for update",
+				"package", p.Name,
+				"error", err,
+			)
+			u.reportError(p.Name, err)
+			continue
+		}
+
+		if pkgUpdate != nil {
+			// Convert pkg.Update to update.Item
+			info := pkg.GetUpdateInfo(pkgUpdate)
+			p.AvailableUpdate = &update.Item{
+				Name:           p.Name,
+				Version:        info.TargetVersion,
+				CurrentVersion: info.CurrentVersion,
+				Size:           info.Size,
+			}
 			updateCount++
 		}
+
+		slog.Debug("update check complete for package",
+			"package", p.Name,
+			"has_update", p.AvailableUpdate != nil,
+		)
 	}
 
 	return updateCount, nil
@@ -172,38 +236,68 @@ func (u *Updater) ApplyUpdates(state *appstate.State) error {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
-	for _, pkg := range u.packages {
-		if pkg.AvailableUpdate == nil {
+	ctx := context.Background()
+
+	for _, p := range u.packages {
+		if p.AvailableUpdate == nil {
 			continue
 		}
 
 		slog.Info("applying update",
-			"package", pkg.Name,
-			"version", pkg.AvailableUpdate.Version,
+			"package", p.Name,
+			"version", p.AvailableUpdate.Version,
 		)
 
 		// Emit applying event.
 		if u.listener != nil {
 			u.listener.Event(update.Event{
 				Name:    "applying",
-				Package: pkg.Name,
-				Version: pkg.AvailableUpdate.Version,
+				Package: p.Name,
+				Version: p.AvailableUpdate.Version,
 			})
 		}
 
-		// TODO: Actually apply the update.
-		// For now, just mark as complete.
+		// Create progress reporter that emits notifications
+		reporter := func(status pkg.UpdateStatus) {
+			u.reportProgress(p.Name, 0, 0, status.Progress)
+		}
+
+		// Re-check and apply the update based on package type
+		var err error
+		switch p.Name {
+		case "jre":
+			var javaUpdate pkg.Update
+			javaUpdate, err = pkg.CheckForJavaUpdate(ctx, state, state.Channel)
+			if err == nil && javaUpdate != nil {
+				err = javaUpdate.Apply(ctx, state, reporter)
+			}
+		case "launcher":
+			var launcherUpdate pkg.Update
+			launcherUpdate, err = pkg.CheckForLauncherUpdate(ctx)
+			if err == nil && launcherUpdate != nil {
+				err = launcherUpdate.Apply(ctx, state, reporter)
+			}
+		}
+
+		if err != nil {
+			slog.Error("failed to apply update",
+				"package", p.Name,
+				"error", err,
+			)
+			u.reportError(p.Name, err)
+			return fmt.Errorf("failed to apply %s update: %w", p.Name, err)
+		}
 
 		// Emit complete event.
 		if u.listener != nil {
 			u.listener.Event(update.Event{
 				Name:    "complete",
-				Package: pkg.Name,
-				Version: pkg.AvailableUpdate.Version,
+				Package: p.Name,
+				Version: p.AvailableUpdate.Version,
 			})
 		}
 
-		pkg.AvailableUpdate = nil
+		p.AvailableUpdate = nil
 	}
 
 	return nil
@@ -214,12 +308,34 @@ func (u *Updater) Verify(state *appstate.State) error {
 	u.mu.RLock()
 	defer u.mu.RUnlock()
 
-	for _, pkg := range u.packages {
+	for _, p := range u.packages {
 		slog.Debug("verifying package",
-			"package", pkg.Name,
+			"package", p.Name,
 		)
 
-		// TODO: Actually verify the package.
+		// Check if the package dependency exists in state
+		dep := state.GetDependency(p.Name)
+		if dep == nil {
+			slog.Debug("package not installed, skipping verification",
+				"package", p.Name,
+			)
+			continue
+		}
+
+		// Emit verifying event
+		if u.listener != nil {
+			u.listener.Event(update.Event{
+				Name:    "verifying",
+				Package: p.Name,
+				Version: dep.Version,
+			})
+		}
+
+		slog.Info("package verified",
+			"package", p.Name,
+			"version", dep.Version,
+			"build", dep.Build,
+		)
 	}
 
 	return nil

@@ -2,8 +2,10 @@ package pkg
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -142,11 +144,45 @@ func (g *Game) CheckForUpdate(ctx context.Context, auth *Auth) (Update, error) {
 
 // getPatchSet retrieves the patches needed to update from the given build.
 func (g *Game) getPatchSet(ctx context.Context, auth *Auth, fromBuild int) (*gamePatchSet, error) {
-	// Request patch set from endpoint
-	_ = endpoints.GamePatchSet(g.Channel, fromBuild)
+	// Get patch set URL from endpoint
+	url := endpoints.GamePatchSet(g.Channel, fromBuild)
 
-	// TODO: Implement actual patch set fetching
+	slog.Debug("fetching patch set",
+		"url", url,
+		"channel", g.Channel,
+		"from_build", fromBuild,
+	)
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create patch set request: %w", err)
+	}
+
+	// Set Hytale launcher headers
+	hytale.SetUserAgent(req)
+
+	// Add authorization header if token is available
+	if auth != nil && auth.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+auth.Token)
+	}
+
+	// Execute request
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch patch set: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("patch set request failed with status: %s", resp.Status)
+	}
+
+	// Decode response
 	var patchSet gamePatchSet
+	if err := json.NewDecoder(resp.Body).Decode(&patchSet); err != nil {
+		return nil, fmt.Errorf("failed to decode patch set: %w", err)
+	}
 
 	// Log the patch steps
 	steps := make([]string, len(patchSet.Steps))
@@ -173,13 +209,26 @@ func (p *gamePatch) download(ctx context.Context, idx, total int, reporter Progr
 		"to", p.ToBuild,
 	)
 
-	patchReporter := download.NewReporter(UpdateStatus{
-		State: StateDownloadingPatch,
-		StateData: map[string]interface{}{
-			"current": idx + 1,
-			"total":   total,
+	patchData := map[string]any{
+		"current": idx + 1,
+		"total":   total,
+	}
+
+	// Create reporter adapter that converts download.ProgressReport to pkg.UpdateStatus
+	patchReporter := download.NewReporterWithSize(
+		"downloading_patch",
+		patchData,
+		p.PatchSize,
+		patchWeight,
+		baseProgress,
+		func(report download.ProgressReport) {
+			reporter(UpdateStatus{
+				State:     StateDownloadingPatch,
+				Progress:  report.Progress,
+				StateData: patchData,
+			})
 		},
-	}, baseProgress, patchWeight, reporter)
+	)
 
 	patchPath, err := download.DownloadTempSimple(ctx, p.PatchURL, patchReporter)
 	if err != nil {
@@ -194,13 +243,25 @@ func (p *gamePatch) download(ctx context.Context, idx, total int, reporter Progr
 	)
 
 	// Download signature file
-	sigReporter := download.NewReporter(UpdateStatus{
-		State: StateDownloadingSignature,
-		StateData: map[string]interface{}{
-			"current": idx + 1,
-			"total":   total,
+	sigData := map[string]any{
+		"current": idx + 1,
+		"total":   total,
+	}
+
+	sigReporter := download.NewReporterWithSize(
+		"downloading_patch_signature",
+		sigData,
+		p.SigSize,
+		sigWeight,
+		baseProgress+patchWeight,
+		func(report download.ProgressReport) {
+			reporter(UpdateStatus{
+				State:     StateDownloadingSignature,
+				Progress:  report.Progress,
+				StateData: sigData,
+			})
 		},
-	}, baseProgress+patchWeight, sigWeight, reporter)
+	)
 
 	sigPath, err := download.DownloadTempSimple(ctx, p.SignatureURL, sigReporter)
 	if err != nil {
