@@ -48,19 +48,21 @@ jobs:
           sudo apt-get install -y \
             libgtk-3-dev \
             libglib2.0-dev \
+            libsoup-3.0-dev \
+            libwebkit2gtk-4.1-dev \
             build-essential
-          if apt-cache show libwebkit2gtk-4.1-dev >/dev/null 2>&1; then
-            sudo apt-get install -y libwebkit2gtk-4.1-dev
-          else
-            sudo apt-get install -y libwebkit2gtk-4.0-dev
-          fi
 
       - name: Install Wails CLI
         run: |
           go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: wails build --platform ${{ matrix.build.platform }} -tags webkit2_41 -o ${{ matrix.build.name }}
+
       - name: Build
+        if: runner.os != 'Linux'
         run: wails build --platform ${{ matrix.build.platform }} -o ${{ matrix.build.name }}
 
       - name: Upload artifacts
