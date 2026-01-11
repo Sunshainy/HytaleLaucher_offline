@@ -1,0 +1,60 @@
+* {
+  box-sizing: border-box;
+}
+
+@font-face {
+  font-family: 'Nunito Sans';
+  src: url('@/assets/fonts/NunitoSans-VariableFont.ttf') format('truetype');
+  font-weight: 100 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nunito Sans';
+  src: url('@/assets/fonts/NunitoSans-Italic-VariableFont.ttf') format('truetype');
+  font-weight: 100 1000;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Lexend';
+  src: url('@/assets/fonts/Lexend-VariableFont.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+html {
+  background-color: #1b2636;
+  color: #fff;
+  font-size: 16px;
+  font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'avenir next', avenir, 'segoe ui', 'helvetica neue', 'Adwaita Sans', Cantarell, Ubuntu, roboto, noto, helvetica, arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  color: #d2d9e2;
+  line-height: 125%;
+}
+
+#app {
+  height: 100vh;
+  overflow-x: hidden;
+}
+
+.list--unstyled {
+  list-style: none;
+  padding: 0;
+}
+
+.text--center {
+  text-align: center;
+}
+
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+}

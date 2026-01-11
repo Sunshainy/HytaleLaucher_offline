@@ -1,0 +1,97 @@
+{
+  "common": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "details": "Details",
+    "play": "Play",
+    "report_bug": "Report Bug"
+  },
+  "login": {
+    "sign_in": "Sign In",
+    "sign_in_message": "Sign in with your Hytale account to continue",
+    "open_in_icon": "Open in browser"
+  },
+  "init": {
+    "loading": "Loading...",
+    "fetching_account_data": "Fetching account data...",
+    "checking_for_updates": "Checking for updates..."
+  },
+  "eula": {
+    "title": "End User License Agreement",
+    "description": "Please read and accept the End User License Agreement to continue.",
+    "loading": "Loading EULA...",
+    "accept": "Accept",
+    "decline": "Decline",
+    "copy_text": "Copy Text"
+  },
+  "launch_game": {
+    "game_version": "Game Version"
+  },
+  "settings": {
+    "title": "Settings",
+    "patchline": "Patchline",
+    "directory": "Installation Directory",
+    "open_directory": "Open Directory",
+    "open": "Open",
+    "launcher_version": "Launcher Version",
+    "last_known_good_version": "Last Known Good Version",
+    "not_available": "N/A",
+    "launch_lkg": "Launch LKG",
+    "check_for_updates": "Check for Updates",
+    "checking_for_updates": "Checking for updates...",
+    "new_updates_available": "New updates available!",
+    "no_updates_available": "No updates available",
+    "failed_to_check_for_updates": "Failed to check for updates",
+    "uninstall": "Uninstall",
+    "logout": "Logout"
+  },
+  "error": {
+    "title": "Error",
+    "unknown_error": "An unknown error occurred",
+    "continue": "Continue",
+    "offline_not_installed": "You are offline and the game is not installed"
+  },
+  "validation_error": {
+    "title": "Validation Error",
+    "description": "An error occurred while validating the game files. You may need to repair or reinstall the game.",
+    "continue": "Continue"
+  },
+  "launcher_update": {
+    "preparing": "Preparing launcher update...",
+    "restarting": "Restarting launcher..."
+  },
+  "uninstall": {
+    "title": "Uninstall",
+    "installed_versions": "Installed Versions",
+    "scanning_versions": "Scanning for installed versions...",
+    "no_versions_installed": "No versions installed",
+    "lkg": "(LKG)",
+    "validate": "Validate",
+    "uninstall_version": "Uninstall",
+    "reset_game_settings": "Reset Game Settings",
+    "reset_game_settings_success": "Game settings have been reset",
+    "delete_user_data": "Delete User Data",
+    "confirm_delete_user_data": "Are you sure you want to delete all user data? This action cannot be undone."
+  },
+  "game_unavailable": {
+    "title": "Game Unavailable",
+    "description": "The game is currently unavailable. Please check back later."
+  },
+  "offline": {
+    "status": "Offline Mode",
+    "checking": "Checking...",
+    "go_online": "Go Online"
+  },
+  "update_status": {
+    "checking_for_updates": "Checking for updates...",
+    "downloading": "Downloading...",
+    "downloading_patch": "Downloading patch {current}/{total}...",
+    "downloading_signature": "Downloading signature...",
+    "applying_patch": "Applying patch...",
+    "validating_patch": "Validating patch...",
+    "installing": "Installing...",
+    "complete": "Complete",
+    "cancelling_updates": "Cancelling updates..."
+  }
+}
