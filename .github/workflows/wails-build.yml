@@ -15,12 +15,15 @@ jobs:
           - name: "hytale-launcher"
             platform: "linux/amd64"
             os: "ubuntu-latest"
+            artifact: "linux-amd64"
           - name: "hytale-launcher"
             platform: "windows/amd64"
             os: "windows-latest"
+            artifact: "windows-amd64"
           - name: "hytale-launcher"
             platform: "darwin/universal"
             os: "macos-latest"
+            artifact: "darwin-universal"
     runs-on: ${{ matrix.build.os }}
     steps:
       - name: Checkout
@@ -44,9 +47,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libgtk-3-dev \
-            libwebkit2gtk-4.0-dev \
             libglib2.0-dev \
             build-essential
+          if apt-cache show libwebkit2gtk-4.1-dev >/dev/null 2>&1; then
+            sudo apt-get install -y libwebkit2gtk-4.1-dev
+          else
+            sudo apt-get install -y libwebkit2gtk-4.0-dev
+          fi
 
       - name: Install Wails CLI
         run: |
@@ -59,5 +66,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wails-build-${{ matrix.build.platform }}
+          name: wails-build-${{ matrix.build.artifact }}
           path: build/bin/**
