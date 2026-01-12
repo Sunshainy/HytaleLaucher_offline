@@ -1,0 +1,9 @@
+HYTALE END USER LICENSE AGREEMENT
+
+This End User License Agreement ("Agreement") is a legal agreement between you
+("User") and Hypixel Studios Limited ("Company") governing your use of the
+Hytale Launcher and associated services.
+
+By using the Hytale Launcher, you agree to be bound by the terms of this Agreement.
+
+[PLACEHOLDER - This is a stub file for the reversed launcher implementation]

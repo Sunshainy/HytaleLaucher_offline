@@ -18,6 +18,80 @@ import (
 	"hytale-launcher/internal/pkg"
 )
 
+// strPtrEqual compares two string pointers for equality.
+func strPtrEqual(a, b *string) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
+}
+
+// currentChannel returns the current channel name.
+func (a *App) currentChannel() *string {
+	return a.getCurrentChannel()
+}
+
+// GetChannel returns the name of the currently selected channel.
+func (a *App) GetChannel() *string {
+	return a.getCurrentChannel()
+}
+
+// getUserProfileUUID returns the UUID of the currently selected profile.
+func (a *App) getUserProfileUUID() string {
+	profile := a.getCurrentProfile()
+	if profile == nil {
+		return ""
+	}
+	return profile.UUID
+}
+
+// GetUserProfile returns the current user's profile for frontend access.
+func (a *App) GetUserProfile() *account.Profile {
+	return a.getCurrentProfile()
+}
+
+// GetUserProfiles returns all profiles associated with the current account.
+func (a *App) GetUserProfiles() []account.Profile {
+	acct := a.Auth.GetAccount()
+	if acct == nil {
+		return nil
+	}
+	return acct.Profiles
+}
+
+// IsUserLoggedIn returns true if a user is currently logged in.
+func (a *App) IsUserLoggedIn() bool {
+	return a.Auth.IsLoggedIn()
+}
+
+// LogoutUser logs out the current user.
+func (a *App) LogoutUser() error {
+	return a.Logout()
+}
+
+// FatalError handles a fatal error by logging it and emitting an event.
+func (a *App) FatalError(message string, err error) {
+	slog.Error("fatal error", "message", message, "error", err)
+	sentry.CaptureException(err)
+	a.Emit("fatal_error", map[string]interface{}{
+		"message": message,
+		"error":   err.Error(),
+	})
+}
+
+// GenerateOauthURL generates an OAuth authorization URL for login.
+func (a *App) GenerateOauthURL() (string, error) {
+	return a.Login()
+}
+
+// GetNewsFeed returns the cached news feed articles.
+func (a *App) GetNewsFeed() []news.Article {
+	return news.GetCachedArticles()
+}
+
 // currentLoopback holds the active login attempt
 var currentLoopback *oauth.Loopback
 

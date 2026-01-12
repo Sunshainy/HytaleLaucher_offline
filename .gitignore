@@ -7,6 +7,9 @@ node_modules/
 # Wails generated files
 frontend/wailsjs/
 
+# Vite build output
+frontend/dist/
+
 # IDEs
 .idea/
 .vscode/

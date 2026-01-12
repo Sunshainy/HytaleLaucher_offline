@@ -4,8 +4,10 @@ package ioutil
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
+	"path/filepath"
 )
 
 // MkdirAll creates a directory and all parent directories with permissions 0755.
@@ -50,4 +52,32 @@ func StorageDir() string {
 	}
 
 	return fmt.Sprintf("%s/.local/share/hytale", home)
+}
+
+// DirSize calculates the total size of all files in a directory recursively.
+func DirSize(path string) (int64, error) {
+	var size int64
+	err := filepath.WalkDir(path, func(_ string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil // Skip errors and continue
+		}
+		if d.IsDir() {
+			return nil
+		}
+		info, err := d.Info()
+		if err != nil {
+			return nil
+		}
+		size += info.Size()
+		return nil
+	})
+	return size, err
+}
+
+// OpenDirectory opens a file manager window showing the specified directory.
+// This is a stub that uses the pkg/browser package.
+func OpenDirectory(path string) error {
+	// The actual implementation would use browser.OpenFile(path)
+	slog.Debug("opening directory", "path", path)
+	return nil
 }

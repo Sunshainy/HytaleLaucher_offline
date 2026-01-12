@@ -1,0 +1,6 @@
+THIRD PARTY LICENSES
+
+This file contains license information for third-party libraries used in the
+Hytale Launcher.
+
+[PLACEHOLDER - This is a stub file for the reversed launcher implementation]
