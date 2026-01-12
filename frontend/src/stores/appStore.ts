@@ -44,6 +44,7 @@ export const useAppStore = defineStore('app', () => {
   const canCancel = ref(true)
   const cancellationStatus = ref<UpdateMessage>({ id: '' })
   const feedArticles = ref<FeedArticle[]>([])
+  const isValidating = ref(false)
 
   // Getters
   const hasUpdate = computed(() => updateInfo.value !== null)
@@ -177,6 +178,7 @@ export const useAppStore = defineStore('app', () => {
     canCancel,
     cancellationStatus,
     feedArticles,
+    isValidating,
     // Getters
     hasUpdate,
     // Actions

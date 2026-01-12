@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/appStore'
 import { useNotificationStore } from '@/stores/notificationStore'
+import { formatBytes } from '@/composables/formatBytes'
 import PanelView from '@/components/PanelView.vue'
 import HyButton from '@/components/HyButton.vue'
 
@@ -42,14 +43,6 @@ async function checkHasUserData(): Promise<boolean> {
 
 async function resetGameSettings(): Promise<void> {
   // Would reset game settings
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 function close() {

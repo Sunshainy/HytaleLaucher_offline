@@ -8,6 +8,7 @@ import Logo from '@/components/Logo.vue'
 import HyDropdown from '@/components/HyDropdown.vue'
 import HyButton from '@/components/HyButton.vue'
 import InstallationProgressBar from '@/components/InstallationProgressBar.vue'
+import NewsCarousel from '@/components/NewsCarousel.vue'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -20,12 +21,14 @@ const STATE = {
   INSTALLING: 'installing',
   INSTALL_AVAILABLE: 'install_available',
   OFFLINE_NOT_INSTALLED: 'offline_not_installed',
-  READY_TO_PLAY: 'ready_to_play'
+  READY_TO_PLAY: 'ready_to_play',
+  VALIDATING: 'validating'
 } as const
 
 const updateInfo = computed(() => appStore.updateInfo)
 
 const currentState = computed(() => {
+  if (appStore.isValidating) return STATE.VALIDATING
   if (appStore.isCancellingUpdate) return STATE.CANCELLING
   if (appStore.updateRunning) return STATE.INSTALLING
   if (updateInfo.value !== null) return STATE.INSTALL_AVAILABLE
@@ -56,6 +59,28 @@ const cancellationMessage = computed(() => {
   return status.id ? t(status.id, status.params || {}) : t('update_status.cancelling_updates')
 })
 
+const newsArticles = computed(() => {
+  return appStore.feedArticles.map(article => ({
+    id: article.id || String(Math.random()),
+    title: article.title,
+    description: article.description || '',
+    imageUrl: article.image_url,
+    link: article.dest_url
+  }))
+})
+
+const gameVersionText = computed(() => {
+  if (updateInfo.value?.GameVersion) {
+    return `${t('launch_game.game_version')}: ${updateInfo.value.GameVersion}`
+  }
+  return ''
+})
+
+const installedVersionText = computed(() => {
+  const version = appStore.gameVersion
+  return version || 'Unknown'
+})
+
 // Launch composable
 const isLaunching = computed(() => false) // Would track launching state
 
@@ -69,7 +94,9 @@ async function install() {
 
 function play() {
   // Would call backend to launch game
-  console.log('Launching game...')
+  if (window.go?.main?.App?.LaunchGame) {
+    window.go.main.App.LaunchGame()
+  }
 }
 
 async function setProfile(uuid: string | number) {
@@ -90,6 +117,12 @@ async function cancelUpdates() {
   }
 }
 
+function handleNewsDetails(article: { link?: string }) {
+  if (article.link && window.runtime?.BrowserOpenURL) {
+    window.runtime.BrowserOpenURL(article.link)
+  }
+}
+
 onMounted(async () => {
   await appStore.fetchNewsFeed()
 })
@@ -101,6 +134,7 @@ onMounted(async () => {
       <div class="launch-game__top-content">
         <Logo class="launch-game__logo" />
         <HyDropdown
+          v-if="profileOptions.length > 0"
           :model-value="selectedProfile"
           @update:model-value="setProfile"
           :options="profileOptions"
@@ -108,30 +142,39 @@ onMounted(async () => {
         />
       </div>
 
-      <!-- News carousel placeholder -->
-      <div class="launch-game__carousel">
-        <div v-for="article in appStore.feedArticles" :key="article.id" class="launch-game__article">
-          {{ article.title }}
+      <!-- News carousel -->
+      <NewsCarousel
+        :articles="newsArticles"
+        class="launch-game__carousel"
+        @details="handleNewsDetails"
+      />
+
+      <!-- Install Hytale section -->
+      <div v-if="currentState === STATE.INSTALL_AVAILABLE" class="launch-game__install-hytale install-hytale">
+        <HyButton
+          type="primary"
+          class="install-hytale__button"
+          @click="install"
+        >
+          {{ updateInfo?.PrimaryAction || 'Install' }}
+        </HyButton>
+        <div v-if="gameVersionText" class="install-hytale__version-text-container">
+          <span class="install-hytale__version-text">{{ gameVersionText }}</span>
         </div>
       </div>
 
-      <!-- Install button -->
-      <div v-if="currentState === STATE.INSTALL_AVAILABLE" class="launch-game__install-hytale">
-        <HyButton type="primary" @click="install">
-          {{ updateInfo?.PrimaryAction || 'Install' }}
-        </HyButton>
-        <span v-if="updateInfo?.GameVersion" class="launch-game__version-text">
-          {{ $t('launch_game.game_version') }}: {{ updateInfo.GameVersion }}
-        </span>
-      </div>
-
-      <!-- Play button -->
-      <div v-if="currentState === STATE.READY_TO_PLAY" class="launch-game__play-hytale">
-        <HyButton type="primary" @click="play" :disabled="isLaunching">
+      <!-- Play Hytale section -->
+      <div v-if="currentState === STATE.READY_TO_PLAY" class="launch-game__play-hytale play-hytale">
+        <HyButton
+          type="primary"
+          class="play-hytale__button"
+          :disabled="isLaunching"
+          @click="play"
+        >
           {{ $t('common.play') }}
         </HyButton>
-        <span class="launch-game__version-text">
-          Version: {{ appStore.gameVersion || 'Unknown' }}
+        <span class="play-hytale__version-text hytale-version">
+          Version: {{ installedVersionText }}
         </span>
       </div>
 
@@ -147,6 +190,11 @@ onMounted(async () => {
         {{ cancellationMessage }}
       </label>
 
+      <!-- Validating label -->
+      <label v-if="currentState === STATE.VALIDATING" class="launch-game__validating-label">
+        {{ $t('update_status.validating_patch') }}
+      </label>
+
       <!-- Offline not installed label -->
       <label v-if="currentState === STATE.OFFLINE_NOT_INSTALLED" class="launch-game__not-installed-label">
         {{ $t('error.offline_not_installed') }}
@@ -156,13 +204,8 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.launch-game {
-  height: 100%;
-  width: 100%;
-}
-
 .launch-game__container {
-  padding: 44px;
+  padding: 44px 44px 25px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -172,59 +215,94 @@ onMounted(async () => {
   position: relative;
 }
 
+.launch-game__logo :deep(img) {
+  width: 287px;
+}
+
 .launch-game__top-content {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   width: 100%;
+}
+
+.launch-game__profile-dropdown {
+  width: 180px;
+  position: absolute;
+  right: 14px;
+  top: 55px;
+}
+
+.launch-game__carousel {
+  margin-top: 24px;
+}
+
+.launch-game__install-hytale,
+.launch-game__play-hytale,
+.launch-game__installation-progress-bar,
+.launch-game__cancelling-label,
+.launch-game__not-installed-label,
+.launch-game__validating-label {
+  margin-top: 64px;
 }
 
 .launch-game__logo :deep(img) {
   height: 146px;
 }
 
-.launch-game__profile-dropdown {
-  width: 200px;
-}
-
-.launch-game__carousel {
-  flex: 1;
-  width: 100%;
-  margin: 24px 0;
-}
-
-.launch-game__article {
-  color: #d2d9e2;
-  padding: 16px;
-  background: rgba(22, 33, 47, 0.5);
-  border-radius: 4px;
-  margin-bottom: 8px;
-}
-
-.launch-game__install-hytale,
-.launch-game__play-hytale {
+/* Install Hytale sub-component styles */
+.install-hytale {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
-  margin-top: auto;
-}
-
-.launch-game__version-text {
-  color: #8b949f;
-  font-size: 12px;
-}
-
-.launch-game__installation-progress-bar {
-  margin-top: auto;
+  justify-content: flex-start;
   width: 100%;
 }
 
+.install-hytale__button {
+  width: 220px;
+}
+
+.install-hytale__version-text-container {
+  margin-top: 8px;
+}
+
+.install-hytale__version-text {
+  margin-top: 8px;
+  margin-right: 8px;
+  color: rgba(210, 217, 226, 0.5);
+  font-size: 14px;
+}
+
+/* Play Hytale sub-component styles */
+.play-hytale {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.play-hytale__button {
+  width: 220px;
+}
+
+.play-hytale__version-text {
+  margin-top: 8px;
+}
+
+.hytale-version {
+  color: rgba(210, 217, 226, 0.5);
+  font-size: 14px;
+}
+
+/* Labels */
 .launch-game__cancelling-label,
-.launch-game__not-installed-label {
-  margin-top: auto;
+.launch-game__not-installed-label,
+.launch-game__validating-label {
   color: #8b949f;
   font-size: 14px;
+  font-family: 'Nunito Sans', sans-serif;
 }
 </style>

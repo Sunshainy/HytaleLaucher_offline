@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import { useAppStore } from '@/stores/appStore'
+import { formatBytes, formatSpeed } from '@/composables/formatBytes'
 import HyButton from './HyButton.vue'
 
 const props = defineProps<{
@@ -25,18 +26,6 @@ const speedDisplay = computed(() => {
   const bps = appStore.updateStatus.download_bps
   return bps ? formatSpeed(bps) : '0 B/s'
 })
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
-
-function formatSpeed(bps: number): string {
-  return formatBytes(bps) + '/s'
-}
 </script>
 
 <template>
@@ -76,63 +65,139 @@ function formatSpeed(bps: number): string {
 <style scoped>
 .installation-progress-bar {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .installation-progress-bar__top-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  gap: 12px;
 }
 
 .installation-progress-bar__info {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: baseline;
 }
 
 .installation-progress-bar__percentage {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 800;
   color: #d2d9e2;
+  font-family: 'Nunito Sans', sans-serif;
+  line-height: 1;
+  margin-right: 12px;
 }
 
 .installation-progress-bar__status {
   font-size: 14px;
   color: #8b949f;
+  font-family: 'Nunito Sans', sans-serif;
+  font-weight: 500;
+  margin-right: 4px;
 }
 
 .installation-progress-bar__download-progress {
   font-size: 14px;
-  color: #8b949f;
+  color: #d1d1d1;
+  font-family: 'Nunito Sans', sans-serif;
+  font-weight: 500;
 }
 
 .installation-progress-bar__bar-container {
-  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .installation-progress-bar__bar {
-  height: 8px;
-  background-color: rgba(67, 78, 101, 0.5);
-  border-radius: 4px;
+  flex: 1;
+  height: 16px;
+  background-color: #2a2f38;
+  border-radius: 2px;
   overflow: hidden;
   position: relative;
 }
 
 .installation-progress-bar__bar-fill {
   height: 100%;
-  background: linear-gradient(to right, #465DA9, #78A1FF);
-  border-radius: 4px;
-  transition: width 0.3s ease;
+  background: linear-gradient(to right, #4B41B0, #6395CD, #9AADEA);
+  background-size: 200% 100%;
+  border-radius: 2px;
+  transition: width 0.2s ease;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  animation: gradient-shift 3s ease infinite;
 }
 
 .installation-progress-bar__bar-mask {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: url('@/assets/images/progress-bar-masked.png');
-  background-size: cover;
+  width: 100%;
+  height: 100%;
+  background-image: url('/assets/progress-bar-masked.2231806c.png');
+  background-size: 200% 100%;
+  background-position: 0% center;
+  background-repeat: repeat-x;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 2;
+  transition: clip-path 0.2s ease;
+  animation: mask-scroll 10s linear infinite, pulse 3s ease-in-out infinite;
+}
+
+.installation-progress-bar__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.installation-progress-bar__button--pause {
+  width: 32px;
+  padding: 0;
+  position: relative;
+}
+
+.installation-progress-bar__button--pause svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.installation-progress-bar__button--cancel {
+  width: 150px;
+}
+
+@keyframes mask-scroll {
+  0% {
+    background-position: -100% center;
+  }
+  100% {
+    background-position: 100% center;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.1);
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 </style>
