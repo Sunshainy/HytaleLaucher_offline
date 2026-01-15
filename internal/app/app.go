@@ -80,9 +80,10 @@ func (a *App) init() error {
 	}
 
 	// If user is already logged in, initialize their session.
-	if profile := a.getCurrentProfile(); profile != nil {
-		a.userInit()
-	}
+	// TODO: Temporarily disabled
+	// if profile := a.getCurrentProfile(); profile != nil {
+	// 	a.userInit()
+	// }
 
 	// Clean up the download cache directory.
 	cacheDir := hytale.InStorageDir("cache")
@@ -166,20 +167,21 @@ func (a *App) userInit() {
 func (a *App) refresh() error {
 	slog.Debug("soft refreshing application state")
 
+	// TODO: Temporarily disabled to avoid errors
 	// Check for updates without forcing a network request.
-	count := a.CheckForUpdates(false)
-	if count > 0 {
-		a.Emit("hint:updates_available")
-	}
+	// count := a.CheckForUpdates(false)
+	// if count > 0 {
+	// 	a.Emit("hint:updates_available")
+	// }
 
 	// Refresh the news feed.
-	if err := a.RefreshNewsFeed(); err != nil {
-		return fmt.Errorf("unable to refresh news feed: %w", err)
-	}
+	// if err := a.RefreshNewsFeed(); err != nil {
+	// 	return fmt.Errorf("unable to refresh news feed: %w", err)
+	// }
 
-	if count > 0 {
-		a.Emit("hint:news_available")
-	}
+	// if count > 0 {
+	// 	a.Emit("hint:news_available")
+	// }
 
 	return nil
 }
@@ -242,4 +244,12 @@ func (a *App) getCurrentProfile() *account.Profile {
 	}
 
 	return acct.GetCurrentProfile()
+}
+
+// minimizeLauncher minimizes the launcher window.
+func (a *App) minimizeLauncher() {
+	if a.ctx != nil {
+		runtime.WindowMinimise(a.ctx)
+		slog.Info("launcher window minimized")
+	}
 }

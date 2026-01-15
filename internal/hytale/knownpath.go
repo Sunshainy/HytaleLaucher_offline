@@ -12,14 +12,20 @@ import (
 )
 
 // getDefaultAppDataDir returns the default application data directory.
+// On Windows, this is %APPDATA% (AppData/Roaming).
 // On Linux, this is XDG_DATA_HOME or ~/.local/share if not set.
 func getDefaultAppDataDir() (string, error) {
-	// Check XDG_DATA_HOME first
+	// On Windows, use APPDATA (Roaming)
+	if dir := os.Getenv("APPDATA"); dir != "" {
+		return dir, nil
+	}
+
+	// Check XDG_DATA_HOME first (Linux)
 	if dir := os.Getenv("XDG_DATA_HOME"); dir != "" {
 		return dir, nil
 	}
 
-	// Fall back to ~/.local/share
+	// Fall back to ~/.local/share (Linux)
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err

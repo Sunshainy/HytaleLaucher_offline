@@ -39,10 +39,12 @@ func main() {
 	// Run the Wails application
 	err := wails.Run(&options.App{
 		Title:     "Hytale Launcher",
-		Width:     1280,
-		Height:    800,
+		Width:     1024,
+		Height:    640,
 		MinWidth:  1024,
-		MinHeight: 700,
+		MinHeight: 640,
+		MaxWidth:  1024,
+		MaxHeight: 640,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
@@ -52,6 +54,10 @@ func main() {
 		Bind: []interface{}{
 			application,
 		},
+		Debug: options.Debug{
+			OpenInspectorOnStartup: false,
+		},
+		Frameless: true,
 		Windows: &windows.Options{
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,

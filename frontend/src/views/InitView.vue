@@ -27,62 +27,7 @@ async function checkGameAvailable(): Promise<boolean> {
 
 onMounted(async () => {
   try {
-    // Check network mode
-    if (!authStore.hasNetworkBeenChecked) {
-      await authStore.checkNetworkMode(true, 'initial_network_check')
-    }
-
-    // Check for launcher updates (if online)
-    if (!authStore.isOffline) {
-      const hasLauncherUpdate = await appStore.checkForFreestandingLauncherUpdate()
-      if (hasLauncherUpdate) {
-        router.push({ name: 'launcher-update' })
-        return
-      }
-    }
-
-    // Load account data
-    await authStore.load()
-    message.value = t('init.fetching_account_data')
-
-    // Check if logged in
-    const isLoggedIn = await authStore.checkSessionInfo()
-    if (!isLoggedIn) {
-      setTimeout(() => {
-        router.push({ name: 'login' })
-      }, 1000)
-      return
-    }
-
-    // Check EULA acceptance
-    const eulaAccepted = await checkEulaAccepted()
-    if (!eulaAccepted) {
-      router.push({ name: 'eula' })
-      return
-    }
-
-    // Check game availability
-    const gameAvailable = await checkGameAvailable()
-    if (!gameAvailable) {
-      router.push({ name: 'game-unavailable' })
-      return
-    }
-
-    // Fetch install info
-    await appStore.fetchInstallInfo()
-
-    // Handle offline mode without game installed
-    if (authStore.isOffline && appStore.currentChannel === '') {
-      router.push({ name: 'launch-game' })
-      return
-    }
-
-    // Check for updates (if online)
-    if (!authStore.isOffline) {
-      message.value = t('init.checking_for_updates')
-      await appStore.checkForUpdates()
-    }
-
+    // TODO: Temporarily disabled all checks - just go to launch-game
     router.push({ name: 'launch-game' })
   } catch (error) {
     router.push({ name: 'error', query: { error: String(error) } })

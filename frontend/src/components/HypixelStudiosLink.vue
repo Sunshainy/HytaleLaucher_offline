@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { BrowserOpenURL } from '@wailsjs/runtime/runtime'
-import hypixelLogo from '@/assets/images/hypixel-studios-logo.png'
+import hypixelLogo from '@/assets/images/signin-background.png'
 
 function openHypixel() {
   BrowserOpenURL('https://hypixelstudios.com')

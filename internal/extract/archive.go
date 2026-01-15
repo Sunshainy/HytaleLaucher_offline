@@ -38,7 +38,7 @@ func StripRootDir(path string) string {
 // It prevents path traversal attacks by ensuring the resulting path is within destDir.
 func safePath(destDir, name string) (string, error) {
 	fullPath := filepath.Join(destDir, name)
-	cleanDest := filepath.Clean(destDir) + "/"
+	cleanDest := filepath.Clean(destDir) + string(filepath.Separator)
 	cleanFull := filepath.Clean(fullPath)
 
 	// Check that the full path starts with the destination directory
@@ -47,6 +47,31 @@ func safePath(destDir, name string) (string, error) {
 	}
 
 	return "", fmt.Errorf("illegal file path in archive: %s", name)
+}
+
+// ArchiveWithoutCleanup extracts an archive file to the destination directory without removing it first.
+// It supports .zip, .tar.gz, and .tgz formats.
+// The progress function is called with (current, total) file counts during extraction.
+// The nameTransformer function can be used to modify file names during extraction (e.g., StripRootDir).
+func ArchiveWithoutCleanup(archivePath, destDir string, progress ProgressFunc, nameTransformer NameTransformerFunc) error {
+	slog.Debug("extracting archive without cleanup", "archive_path", archivePath, "dest_dir", destDir)
+
+	// Create destination directory if it doesn't exist
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	// Determine archive type by extension
+	ext := strings.ToLower(filepath.Ext(archivePath))
+
+	switch ext {
+	case ".zip":
+		return extractZip(archivePath, destDir, progress, nameTransformer)
+	case ".gz", ".tgz":
+		return extractTarGz(archivePath, destDir, progress, nameTransformer)
+	default:
+		return fmt.Errorf("unsupported archive format: %s", ext)
+	}
 }
 
 // Archive extracts an archive file to the destination directory.

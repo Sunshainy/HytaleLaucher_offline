@@ -12,10 +12,11 @@ import (
 	"hytale-launcher/internal/account"
 	"hytale-launcher/internal/appstate"
 	"hytale-launcher/internal/auth"
+	"hytale-launcher/internal/hytale"
+	"hytale-launcher/internal/ioutil"
 	"hytale-launcher/internal/net"
 	"hytale-launcher/internal/news"
 	"hytale-launcher/internal/oauth"
-	"hytale-launcher/internal/pkg"
 )
 
 // strPtrEqual compares two string pointers for equality.
@@ -99,6 +100,10 @@ var currentLoopback *oauth.Loopback
 // If force is true, it will refresh user data and invalidate version manifests.
 // Returns the number of updates found, or -1 if an error occurred.
 func (a *App) CheckForUpdates(force bool) int {
+	// Temporarily disabled to avoid errors
+	return 0
+	
+	/*
 	// Ensure we have a valid update environment.
 	if a.State == nil || a.Updater == nil {
 		slog.Warn("cannot check for updates: no update environment configured")
@@ -136,6 +141,7 @@ func (a *App) CheckForUpdates(force bool) int {
 	)
 
 	return count
+	*/
 }
 
 // CheckNetworkMode checks if the network is available and updates the mode accordingly.
@@ -291,9 +297,16 @@ func (a *App) Logout() error {
 
 	// Notify the frontend.
 	a.Emit("logout")
-	a.ReloadLauncher("logout")
+	// TODO: Temporarily disabled
+	// a.ReloadLauncher("logout")
 
 	return nil
+}
+
+// OpenGameDirectory opens the Hytale game directory in the file explorer.
+func (a *App) OpenGameDirectory() error {
+	path := hytale.StorageDir()
+	return ioutil.OpenDirectory(path)
 }
 
 // GetState returns the current app state for the frontend.
@@ -362,7 +375,8 @@ func (a *App) waitForLogin() {
 
 	slog.Info("login successful")
 	a.Emit("login_success")
-	a.ReloadLauncher("login_success")
+	// TODO: Temporarily disabled
+	// a.ReloadLauncher("login_success")
 }
 
 // createAccountFromToken creates a new account from an OAuth token.

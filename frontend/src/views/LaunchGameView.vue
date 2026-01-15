@@ -1,19 +1,30 @@
 <script lang="ts" setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useNotificationStore } from '@/stores/notificationStore'
 import { useI18n } from 'vue-i18n'
 import Logo from '@/components/Logo.vue'
 import HyDropdown from '@/components/HyDropdown.vue'
 import HyButton from '@/components/HyButton.vue'
 import InstallationProgressBar from '@/components/InstallationProgressBar.vue'
 import NewsCarousel from '@/components/NewsCarousel.vue'
+import { LaunchGame, GetPlayerName, IsGameInstalled, InstallGame } from '@wailsjs/go/app/App'
+import { EventsOn } from '@wailsjs/runtime/runtime'
 
 const router = useRouter()
 const appStore = useAppStore()
 const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
 const { t } = useI18n()
+
+// Player nickname
+const playerNickname = ref('')
+const isLaunching = ref(false)
+const isInstalling = ref(false)
+const installProgress = ref(0)
+const gameInstalled = ref(false)
 
 // State enum
 const STATE = {
@@ -28,18 +39,14 @@ const STATE = {
 const updateInfo = computed(() => appStore.updateInfo)
 
 const currentState = computed(() => {
+  // TODO: Temporarily disabled all checks
   if (appStore.isValidating) return STATE.VALIDATING
   if (appStore.isCancellingUpdate) return STATE.CANCELLING
   if (appStore.updateRunning) return STATE.INSTALLING
   if (updateInfo.value !== null) return STATE.INSTALL_AVAILABLE
-  if (updateInfo.value === null && appStore.currentChannel) {
-    const gameVersion = appStore.gameVersion
-    if (authStore.isOffline && !gameVersion) {
-      return STATE.OFFLINE_NOT_INSTALLED
-    }
-    return STATE.READY_TO_PLAY
-  }
-  return STATE.OFFLINE_NOT_INSTALLED
+  
+  // Skip offline check - always show as ready to play
+  return STATE.READY_TO_PLAY
 })
 
 const profileOptions = computed(() => {
@@ -81,9 +88,6 @@ const installedVersionText = computed(() => {
   return version || 'Unknown'
 })
 
-// Launch composable
-const isLaunching = computed(() => false) // Would track launching state
-
 async function install() {
   try {
     await appStore.applyUpdates()
@@ -92,10 +96,65 @@ async function install() {
   }
 }
 
-function play() {
-  // Would call backend to launch game
-  if (window.go?.main?.App?.LaunchGame) {
-    window.go.main.App.LaunchGame()
+async function play() {
+  // Check if nickname is entered
+  if (!playerNickname.value.trim()) {
+    notificationStore.showError('Введите ник')
+    return
+  }
+
+  // Check if game is installed
+  try {
+    const installed = await IsGameInstalled()
+    if (!installed) {
+      // Start installation
+      notificationStore.showInfo('Начинается установка игры...')
+      await installGame()
+      return
+    }
+  } catch (error) {
+    console.error('Failed to check game installation:', error)
+  }
+
+  // Launch the game
+  try {
+    isLaunching.value = true
+    await LaunchGame({ playerName: playerNickname.value.trim() })
+    notificationStore.showSuccess('Игра запущена!')
+  } catch (error) {
+    notificationStore.showError(String(error))
+    console.error('Failed to launch game:', error)
+  } finally {
+    isLaunching.value = false
+  }
+}
+
+async function installGame() {
+  try {
+    isInstalling.value = true
+    installProgress.value = 0
+    
+    await InstallGame()
+    
+    gameInstalled.value = true
+    notificationStore.showSuccess('Игра установлена!')
+    
+    // Auto-launch after installation
+    try {
+      isLaunching.value = true
+      await LaunchGame({ playerName: playerNickname.value.trim() })
+      notificationStore.showSuccess('Игра запущена!')
+    } catch (error) {
+      notificationStore.showError(String(error))
+      console.error('Failed to launch game after install:', error)
+    } finally {
+      isLaunching.value = false
+    }
+  } catch (error) {
+    notificationStore.showError('Ошибка установки: ' + String(error))
+    console.error('Failed to install game:', error)
+  } finally {
+    isInstalling.value = false
   }
 }
 
@@ -124,7 +183,36 @@ function handleNewsDetails(article: { link?: string }) {
 }
 
 onMounted(async () => {
-  await appStore.fetchNewsFeed()
+  // Load saved player name
+  try {
+    const savedName = await GetPlayerName()
+    if (savedName) {
+      playerNickname.value = savedName
+    }
+  } catch (error) {
+    console.log('No saved player name found')
+  }
+
+  // Check if game is installed
+  try {
+    gameInstalled.value = await IsGameInstalled()
+  } catch (error) {
+    console.error('Failed to check game installation:', error)
+  }
+
+  // Listen for installation progress events
+  EventsOn('install:progress', (data: any) => {
+    if (data.progress) {
+      installProgress.value = Math.round(data.progress)
+    }
+  })
+
+  EventsOn('install:complete', () => {
+    gameInstalled.value = true
+  })
+
+  // TODO: Temporarily disabled
+  // await appStore.fetchNewsFeed()
 })
 </script>
 
@@ -168,13 +256,26 @@ onMounted(async () => {
         <HyButton
           type="primary"
           class="play-hytale__button"
-          :disabled="isLaunching"
+          :disabled="isLaunching || isInstalling"
           @click="play"
         >
-          {{ $t('common.play') }}
+          {{ isInstalling ? 'Установка...' : 'Играть' }}
         </HyButton>
+        
+        <!-- Installation progress -->
+        <div v-if="isInstalling" class="play-hytale__install-progress">
+          <span class="play-hytale__progress-text">{{ installProgress }}%</span>
+        </div>
+        
+        <input
+          v-model="playerNickname"
+          type="text"
+          placeholder="Введите ник"
+          class="play-hytale__nickname-input"
+          :disabled="isInstalling"
+        />
         <span class="play-hytale__version-text hytale-version">
-          Version: {{ installedVersionText }}
+          Version: latest
         </span>
       </div>
 
@@ -193,11 +294,6 @@ onMounted(async () => {
       <!-- Validating label -->
       <label v-if="currentState === STATE.VALIDATING" class="launch-game__validating-label">
         {{ $t('update_status.validating_patch') }}
-      </label>
-
-      <!-- Offline not installed label -->
-      <label v-if="currentState === STATE.OFFLINE_NOT_INSTALLED" class="launch-game__not-installed-label">
-        {{ $t('error.offline_not_installed') }}
       </label>
     </div>
   </div>
@@ -245,6 +341,13 @@ onMounted(async () => {
 .launch-game__not-installed-label,
 .launch-game__validating-label {
   margin-top: 64px;
+  position: absolute;
+  left: 90px;
+  top: 235px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .launch-game__logo :deep(img) {
@@ -255,9 +358,9 @@ onMounted(async () => {
 .install-hytale {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  width: 100%;
+  align-items: center;
+  justify-content: center;
+  width: auto;
 }
 
 .install-hytale__button {
@@ -270,18 +373,19 @@ onMounted(async () => {
 
 .install-hytale__version-text {
   margin-top: 8px;
-  margin-right: 8px;
+  margin-right: 0;
   color: rgba(210, 217, 226, 0.5);
   font-size: 14px;
+  text-align: center;
 }
 
 /* Play Hytale sub-component styles */
 .play-hytale {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  width: 100%;
+  align-items: center;
+  justify-content: center;
+  width: auto;
 }
 
 .play-hytale__button {
@@ -290,6 +394,45 @@ onMounted(async () => {
 
 .play-hytale__version-text {
   margin-top: 8px;
+  text-align: center;
+}
+
+.play-hytale__nickname-input {
+  width: 220px;
+  padding: 8px 12px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  background: rgba(116, 123, 132, 0.1);
+  border: 1px solid rgba(116, 123, 132, 0.3);
+  border-radius: 4px;
+  color: rgba(210, 217, 226, 0.9);
+  font-size: 14px;
+  text-align: center;
+  font-family: 'Nunito Sans', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.play-hytale__nickname-input:focus {
+  outline: none;
+  border-color: rgba(116, 123, 132, 0.6);
+  background: rgba(116, 123, 132, 0.2);
+  box-shadow: 0 0 8px rgba(116, 123, 132, 0.3);
+}
+
+.play-hytale__nickname-input::placeholder {
+  color: rgba(210, 217, 226, 0.4);
+}
+
+.play-hytale__install-progress {
+  margin-top: 12px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.play-hytale__progress-text {
+  color: rgba(210, 217, 226, 0.9);
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .hytale-version {

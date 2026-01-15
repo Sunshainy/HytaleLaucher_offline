@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -75,9 +76,16 @@ func DirSize(path string) (int64, error) {
 }
 
 // OpenDirectory opens a file manager window showing the specified directory.
-// This is a stub that uses the pkg/browser package.
 func OpenDirectory(path string) error {
-	// The actual implementation would use browser.OpenFile(path)
 	slog.Debug("opening directory", "path", path)
+	// Create directory if it doesn't exist
+	if err := os.MkdirAll(path, 0o755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+	// On Windows, use explorer command
+	cmd := exec.Command("explorer", path)
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to open directory: %w", err)
+	}
 	return nil
 }

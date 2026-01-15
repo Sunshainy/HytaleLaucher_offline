@@ -12,21 +12,25 @@ const isLoading = ref(false)
 
 const openInIcon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAARCAYAAAA7bUf6AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAC8SURBVHgBrZK9EQIhEIX5Cwgp4SJmCCnBCmzFDjxLsAM7sQTMSC3hKgB3Ax08gT3v7iXsDPDxeLs8xjiybz2dczcscE8IcWaERG8TYGNK6cIIqfJCCwSOWM9R10kJyjlfN0HAycA5P66GIAC+codyWAWpATDoedjqX8C7AWXYTSdSSgOLqQFQZfubEGvtA8I8QDnNAT8gnMrK1H4UQjCMkKIOeO8n6gES0pPW+oTromGjtAuE90Jdql2cvAClzFdGDZMFsAAAAABJRU5ErkJggg=='
 
-async function signIn() {
-  if (isLoading.value) return
+// function signIn() {
+//   if (isLoading.value) return
+//
+//   isLoading.value = true
+//   try {
+//     // Get OAuth URL from backend (starts loopback server)
+//     const loginUrl = await App.Login()
+//     // Open in browser
+//     BrowserOpenURL(loginUrl)
+//   } catch (error) {
+//     console.error('Login error:', error)
+//     router.push({ name: 'error', query: { error: String(error) } })
+//   } finally {
+//     isLoading.value = false
+//   }
+// }
 
-  isLoading.value = true
-  try {
-    // Get OAuth URL from backend (starts loopback server)
-    const loginUrl = await App.Login()
-    // Open in browser
-    BrowserOpenURL(loginUrl)
-  } catch (error) {
-    console.error('Login error:', error)
-    router.push({ name: 'error', query: { error: String(error) } })
-  } finally {
-    isLoading.value = false
-  }
+function playGame() {
+  router.push({ name: 'init' })
 }
 </script>
 
@@ -37,12 +41,10 @@ async function signIn() {
       <div class="login__signin-container">
         <HyButton
           class="login__sign-in-button"
-          @click="signIn"
-          :disabled="isLoading"
+          @click="playGame"
           type="primary"
         >
-          {{ $t('login.sign_in') }}
-          <img :src="openInIcon" class="login__sign-in-img" :alt="$t('login.open_in_icon')" draggable="false" />
+          Играть
         </HyButton>
         <p class="login__sign-in-message">{{ $t('login.sign_in_message') }}</p>
       </div>
@@ -62,17 +64,32 @@ async function signIn() {
   justify-content: flex-start;
   flex-grow: 1;
   height: 100%;
+  position: relative;
 }
 
 .login__container {
   max-width: 395px;
-  background-image: url('@/assets/images/signin-background.png');
-  background-size: cover;
-  background-position: center;
   height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.login__container::after {
+  content: '';
+  position: fixed;
+  bottom: 35px;
+  right: 35px;
+  width: 85px;
+  height: 85px;
+  background-image: url('@/assets/images/signin-background.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: bottom right;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .login__sign-in-button {

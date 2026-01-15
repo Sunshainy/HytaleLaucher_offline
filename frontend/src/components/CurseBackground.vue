@@ -3,6 +3,8 @@ import curseBg from '@/assets/images/curse-breaker-bg-2.jpg'
 import curseGlow from '@/assets/images/curse-glow.png'
 import cursePortal from '@/assets/images/curse-portal-front.png'
 import curseTentacles from '@/assets/images/curse-tentacles.png'
+import hypixelLogo from '@/assets/images/hypixel-studios-logo.png'
+import runes from '@/assets/images/runes.png'
 
 defineProps<{
   showGradient?: boolean
@@ -15,8 +17,10 @@ const bgStyle = `url(${curseBg})`
   <div class="curse-background" :class="{ 'curse-background--gradient': showGradient }">
     <img :src="curseGlow" class="curse-background__curse-glow" alt="" />
     <img :src="cursePortal" class="curse-background__curse-portal-front" alt="" />
+    <img :src="hypixelLogo" class="curse-background__hypixel-logo" alt="Hypixel Studios" />
     <img :src="curseTentacles" class="curse-background__curse-tentacles" alt="" />
     <img :src="curseTentacles" class="curse-background__curse-tentacles-2" alt="" />
+    <img :src="runes" class="curse-background__runes" alt="" />
   </div>
 </template>
 
@@ -38,29 +42,41 @@ const bgStyle = `url(${curseBg})`
 }
 
 .curse-background__curse-glow {
+  display: none;
   object-fit: cover;
   width: 50%;
   height: 50%;
   right: -150px;
   top: 100px;
   opacity: 0;
-  animation: curse-glow-animation 4s ease-in-out infinite;
   transform-origin: center center;
 }
 
 .curse-background__curse-portal-front {
-  height: 220px;
-  right: 55px;
-  top: 143px;
+  height: 100%;
+  width: auto;
+  left: 0;
+  top: 0;
+  bottom: 0;
   opacity: 1;
-  animation: curse-portal-front-animation 4s ease-out infinite;
+  object-fit: contain;
+}
+
+.curse-background__hypixel-logo {
+  position: absolute;
+  left: 90px;
+  top: 90px;
+  max-width: 215px;
+  width: 215px;
+  height: auto;
+  z-index: 2;
 }
 
 .curse-background__curse-tentacles,
 .curse-background__curse-tentacles-2 {
-  width: 275px;
-  right: 25px;
-  top: 70px;
+  width: 100px;
+  right: 53px;
+  top: 138px;
   opacity: 1;
   animation: curse-tentacles-2-animation 4s ease-out infinite;
   transform-origin: right center;
@@ -68,6 +84,16 @@ const bgStyle = `url(${curseBg})`
 
 .curse-background__curse-tentacles-2 {
   animation-delay: 2s;
+}
+
+.curse-background__runes {
+  width: 240px;
+  right: 30px;
+  top: 75px;
+  opacity: 1;
+  animation: curse-tentacles-2-animation 4s ease-out infinite;
+  position: absolute;
+  z-index: 3;
 }
 
 .curse-background::after {
