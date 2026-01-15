@@ -1,140 +1,214 @@
-# Hytale Launcher - Reverse Engineered
+# 🎮 Hytale Offline Launcher
 
-This repository contains reverse-engineered Go source code from the official Hytale game launcher.
+> **Реверс-инженерия официального лаунчера Hytale для автономной игры**
 
-## Overview
+Полнофункциональный лаунчер Hytale, переписанный с нуля для поддержки **оффлайн режима** с возможностью установки игры, запуска сервера и управления профилями игроков.
 
-The Hytale launcher was decompiled from its binary using Ghidra with a Go plugin, then converted from the decompiled C representation back to idiomatic Go source code.
+[![Release](https://img.shields.io/github/v/release/Sunshainy/HytaleLaucher_offline)](https://github.com/Sunshainy/HytaleLaucher_offline/releases/latest)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Architecture
+---
 
-The launcher is a **Wails-based desktop application** that uses:
-- **itch.io's Wharf** patching system for efficient incremental game updates
-- **OAuth** for authentication
-- **AES-GCM** encryption for local data storage
-- **OS keyring** integration for credential storage
+## ✨ Основные возможности
 
-## Package Structure
+### 🎯 Игровой функционал
+- **Автономный запуск** - Играйте в Hytale без подключения к серверам аутентификации
+- **Уникальные UUID** - Каждый ник получает постоянный UUID (генерация через UUID v5)
+- **Профили игроков** - Автоматическое сохранение и управление профилями
+- **Автосворачивание** - Лаунчер сворачивается при запуске игры
 
-| Package | Description |
-|---------|-------------|
-| `account/` | User account & profile management |
-| `app/` | Main Wails application |
-| `appstate/` | Persistent state management |
-| `auth/` | OAuth authentication flow |
-| `build/` | Build info, platform detection |
-| `buildscan/` | Installation detection |
-| `crypto/` | AES-GCM encryption |
-| `deletex/` | Safe file deletion |
-| `download/` | HTTP downloads with progress |
-| `endpoints/` | API URL generation |
-| `eventgroup/` | Concurrent event handling |
-| `extract/` | Archive extraction (zip/tar) |
-| `fork/` | Process forking |
-| `helper/` | Utility functions |
-| `hytale/` | Game-specific paths and config |
-| `ioutil/` | File I/O utilities |
-| `keyring/` | OS credential storage |
-| `launch/` | Game process launching |
-| `legalfiles/` | EULA/ToS handling |
-| `logging/` | Logging utilities |
-| `net/` | Network connectivity |
-| `news/` | News feed handling |
-| `notifications/` | System notifications |
-| `oauth/` | OAuth token management |
-| `pkg/` | Game/Java/Launcher packages |
-| `repair/` | Installation repair |
-| `selfupdate/` | Launcher auto-update |
-| `session/` | Session management |
-| `throttle/` | Request rate limiting |
-| `update/` | Update orchestration |
-| `updater/` | Update checking |
-| `verget/` | Version manifest retrieval |
+### 🖥️ Серверный функционал
+- **Встроенный запуск сервера** - Запуск Hytale Server прямо из настроек
+- **Мониторинг состояния** - Визуальная индикация статуса сервера в реальном времени
+- **Автоопределение загрузки** - Лаунчер определяет когда сервер полностью запущен
+- **Скрытая консоль** - Сервер работает без консольного окна
+- **Логирование** - Все логи сервера сохраняются в `server.log`
 
-## API Endpoints
+### ⚙️ Технические особенности
+- Построен на **Wails** (Go + Vue.js)
+- Современный UI с WebView2
+- Криптографически безопасная генерация UUID
+- Полное логирование всех операций
 
-The launcher communicates with these endpoints (domain: `hytale.com`):
+---
 
-| Endpoint | URL Pattern |
-|----------|-------------|
-| Patch Set | `https://account-data.hytale.com/patches/{os}/{arch}/{channel}/{build}` |
-| Launcher Data | `https://account-data.hytale.com/launcher-data` |
-| Version Manifest | `https://launcher.hytale.com/version/{platform}/{component}.json` |
-| News Feed | `https://launcher.hytale.com/launcher-feed/{release}/feed.json` |
+## 📦 Установка
 
-## Update Flow
+### Требования
+- Windows 10/11 (64-bit)
+- WebView2 Runtime (устанавливается автоматически при первом запуске)
+- ZIP архив с игрой Hytale
 
-1. Authenticate via OAuth
-2. Fetch patchline info from `/launcher-data`
-3. Compare current build vs latest build
-4. Download incremental patches (Wharf `.pwr` files)
-5. Verify signatures (`.sig` files)
-6. Apply patches sequentially
-7. Validate installation
+### Шаги установки
 
-## Build
+1. **Скачайте лаунчер** из [релизов](https://github.com/Sunshainy/HytaleLaucher_offline/releases/latest)
+   ```
+   HytaleLauncher.exe
+   ```
 
-Prerequisites:
-- Go (see `go.mod`)
-- Node.js 20+
+2. **Поместите рядом с архивом игры** (ZIP файл с игрой)
+   ```
+   📁 Папка
+   ├── HytaleLauncher.exe
+   └── game-package.zip
+   ```
 
-Local build:
+3. **Запустите лаунчер** и нажмите "Install Game"
 
+4. **Готово!** Игра установится автоматически
+
+---
+
+## 🎮 Использование
+
+### Запуск игры
+
+1. Введите имя игрока (ник)
+2. Нажмите **"Launch Game"**
+3. Лаунчер автоматически свернется
+4. Игра запустится с вашим уникальным UUID
+
+### Запуск сервера для сетевой игры
+
+1. Откройте **настройки** (иконка ⚙️ в углу)
+2. Найдите секцию **"Сетевая игра"**
+3. Нажмите **"Запустить сервер"**
+4. Дождитесь индикатора 🟢 **"Сервер запущен"**
+5. Подключайтесь к серверу через игру
+
+**Статусы сервера:**
+- 🟡 Желтый спиннер - Сервер запускается...
+- 🟢 Зеленый - Сервер запущен и готов
+- ⚪ Серый - Сервер остановлен
+
+---
+
+## 🛠️ Сборка из исходников
+
+### Требования для разработки
+- Go 1.21+
+- Node.js 18+
+- Wails v2.11.0
+
+### Установка Wails
 ```bash
-make build
+go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
 ```
 
-Platform notes:
-- Linux:
-  - Debian/Ubuntu (apt):
-    ```bash
-    sudo apt-get update
-    sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libglib2.0-dev build-essential
-    ```
-  - Fedora/RHEL (dnf):
-    ```bash
-    sudo dnf install -y gtk3-devel webkit2gtk4.0-devel glib2-devel gcc-c++
-    ```
-  - Arch (pacman):
-    ```bash
-    sudo pacman -S --needed gtk3 webkit2gtk glib2 base-devel
-    ```
-  - openSUSE (zypper):
-    ```bash
-    sudo zypper install -y gtk3-devel webkit2gtk3-devel glib2-devel gcc-c++
-    ```
-- macOS:
-  - Xcode Command Line Tools:
-    ```bash
-    xcode-select --install
-    ```
-  - Homebrew (if you need it):
-    ```bash
-    brew install go node
-    ```
-- Windows:
-  - Visual Studio Build Tools (C++ workload):
-    ```powershell
-    choco install -y visualstudio2022buildtools visualstudio2022-workload-vctools
-    ```
-    ```powershell
-    winget install --id Microsoft.VisualStudio.2022.BuildTools -e
-    ```
-  - Go/Node.js (if needed):
-    ```powershell
-    choco install -y golang nodejs-lts
-    ```
-    ```powershell
-    winget install --id GoLang.Go -e
-    winget install --id OpenJS.NodeJS.LTS -e
-    ```
+### Сборка проекта
 
-## Disclaimer
+```bash
+# Клонировать репозиторий
+git clone https://github.com/Sunshainy/HytaleLaucher_offline.git
+cd hytale-launcher
 
-This code is provided for educational and research purposes only. All rights to Hytale belong to Hypixel Studios.
+# Установить зависимости frontend
+cd frontend
+npm install
+cd ..
 
-## Stats
+# Собрать приложение
+wails build -clean
 
-- **70 Go source files**
-- **31 packages**
-- **~7,500 lines of code**
+# Результат в build/bin/HytaleLauncher.exe
+```
+
+### Режим разработки
+```bash
+wails dev
+```
+
+---
+
+## 📁 Структура проекта
+
+```
+hytale-launcher/
+├── internal/               # Go backend
+│   ├── app/               # Основная логика приложения
+│   ├── account/           # Управление аккаунтами
+│   ├── playerprofile/     # Профили игроков и UUID
+│   ├── auth/              # Аутентификация
+│   └── ...
+├── frontend/              # Vue.js frontend
+│   ├── src/
+│   │   ├── views/        # Страницы UI
+│   │   ├── components/   # Компоненты
+│   │   └── stores/       # Pinia стейт менеджмент
+│   └── ...
+├── build/                 # Собранные файлы
+├── main.go               # Точка входа
+└── wails.json            # Конфигурация Wails
+```
+
+---
+
+## 🔐 Безопасность
+
+### UUID генерация
+Каждый игрок получает уникальный UUID на основе имени (ника) с использованием:
+- **UUID v5** (SHA-1 based)
+- Фиксированный namespace для консистентности
+- Одинаковый ник = одинаковый UUID (детерминированность)
+
+### Хранение данных
+- Профили игроков: `%APPDATA%/hytale/player_profiles.json`
+- Логи сервера: `%APPDATA%/hytale/server.log`
+- Игровые файлы: `%APPDATA%/hytale/package/`
+
+---
+
+## ❓ FAQ
+
+**Q: Почему консоль не открывается при запуске сервера?**  
+A: Сервер работает в фоновом режиме без консольного окна. Все логи пишутся в `server.log`.
+
+**Q: Где найти логи сервера?**  
+A: В настройках нажмите "Open Directory" → откроется папка с `server.log`.
+
+**Q: Как подключиться к серверу?**  
+A: После запуска сервера подключайтесь через игру к `localhost` или IP компьютера в локальной сети.
+
+**Q: UUID меняется каждый раз?**  
+A: Нет! UUID генерируется один раз для каждого ника и сохраняется навсегда.
+
+---
+
+## 🤝 Вклад в проект
+
+Приветствуются любые улучшения! Открывайте Issues и Pull Requests.
+
+### Разработка
+1. Fork репозитория
+2. Создайте ветку (`git checkout -b feature/amazing-feature`)
+3. Commit изменений (`git commit -m 'Add amazing feature'`)
+4. Push в ветку (`git push origin feature/amazing-feature`)
+5. Откройте Pull Request
+
+---
+
+## 📄 Лицензия
+
+Этот проект создан исключительно в образовательных целях и для личного использования.
+
+**Дисклеймер:** Это неофициальный проект, созданный путем реверс-инженерии. Hytale и все связанные торговые марки принадлежат Hypixel Studios.
+
+---
+
+## 🙏 Благодарности
+
+- **Hypixel Studios** - за создание Hytale
+- **Wails** - за отличный фреймворк
+- Сообществу Hytale за поддержку
+
+---
+
+## 📞 Контакты
+
+**Автор:** Sunshainy  
+**Email:** lexalex2017@gmail.com  
+**GitHub:** [@Sunshainy](https://github.com/Sunshainy)
+
+---
+
+⭐ Если проект был полезен, поставьте звездочку!
