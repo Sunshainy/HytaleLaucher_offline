@@ -2,7 +2,7 @@
 
 > **Реверс-инженерия официального лаунчера Hytale для автономной игры**
 
-Полнофункциональный лаунчер Hytale, переписанный с нуля для поддержки **оффлайн режима** с возможностью установки игры, запуска сервера и управления профилями игроков.
+Полнофункциональный лаунчер Hytale, модифицированный для поддержки **оффлайн режима** с возможностью установки игры, запуска сервера и управления профилями игроков.
 
 [![Release](https://img.shields.io/github/v/release/Sunshainy/HytaleLaucher_offline)](https://github.com/Sunshainy/HytaleLaucher_offline/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
